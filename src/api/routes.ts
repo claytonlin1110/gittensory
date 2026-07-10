@@ -1459,8 +1459,9 @@ export function createApp() {
     if (forbidden) return forbidden;
     const parsed = operatorDashboardQuerySchema.safeParse(c.req.query());
     if (!parsed.success) return c.json({ error: "invalid_query", issues: parsed.error.issues }, 400);
-    const days = parsed.data.days ? Number(parsed.data.days) : undefined;
-    return c.json(await buildOperatorDashboardPayload(c.env, { days }));
+    return c.json(
+      await buildOperatorDashboardPayload(c.env, parsed.data.days ? { days: Number(parsed.data.days) } : {}),
+    );
   });
 
   // Dead-letter-queue table view (#2214), read-only: the self-host queue backend's admin surface is mirrored
