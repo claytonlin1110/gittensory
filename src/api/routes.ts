@@ -487,6 +487,15 @@ const selfhostDeadLetterQueueQuerySchema = z
   })
   .strict();
 
+// Operator-dashboard analytics window (#2199): a fixed 7/30/90-day set (matching the UI's toggle options)
+// rather than an open-ended clampInteger range, so an unsupported value is rejected rather than silently
+// coerced to the nearest supported window.
+const operatorDashboardQuerySchema = z
+  .object({
+    days: z.enum(["7", "30", "90"]).optional(),
+  })
+  .strict();
+
 const skippedPrAuditQuerySchema = z
   .object({
     limit: z.coerce.number().int().optional(),
@@ -1448,7 +1457,10 @@ export function createApp() {
   app.get("/v1/app/operator-dashboard", async (c) => {
     const forbidden = await requireAppRole(c, ["operator"]);
     if (forbidden) return forbidden;
-    return c.json(await buildOperatorDashboardPayload(c.env));
+    const parsed = operatorDashboardQuerySchema.safeParse(c.req.query());
+    if (!parsed.success) return c.json({ error: "invalid_query", issues: parsed.error.issues }, 400);
+    const days = parsed.data.days ? Number(parsed.data.days) : undefined;
+    return c.json(await buildOperatorDashboardPayload(c.env, { days }));
   });
 
   // Dead-letter-queue table view (#2214), read-only: the self-host queue backend's admin surface is mirrored

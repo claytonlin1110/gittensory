@@ -71,6 +71,18 @@ describe("operator dashboard payload", () => {
     );
   });
 
+  it("defaults the analytics window to 90 days when no option is given", async () => {
+    const env = createTestEnv({ PRODUCT_USAGE_HASH_SALT: "operator-dashboard-test-salt" });
+    const payload = await buildOperatorDashboardPayload(env);
+    expect(payload.recommendationQuality.windowDays).toBe(90);
+  });
+
+  it("threads a caller-selected analytics window (#2199) into the window-scoped cards", async () => {
+    const env = createTestEnv({ PRODUCT_USAGE_HASH_SALT: "operator-dashboard-test-salt" });
+    const payload = await buildOperatorDashboardPayload(env, { days: 30 });
+    expect(payload.recommendationQuality.windowDays).toBe(30);
+  });
+
   it("picks the newest rollup day for adoption insights", () => {
     const rollups: ProductUsageDailyRollupRecord[] = [
       rollup("2026-05-28"),

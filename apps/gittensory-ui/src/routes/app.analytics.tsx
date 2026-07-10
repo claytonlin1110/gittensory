@@ -13,13 +13,22 @@ import { GatePrecisionCard } from "@/components/site/app-panels/gate-precision-c
 import type { GateEvalReport } from "@/components/site/app-panels/gate-precision-card-model";
 import { CycleTimeCard } from "@/components/site/app-panels/cycle-time-card";
 import type { CycleTimeAggregate } from "@/components/site/app-panels/cycle-time-card-model";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useApiResource } from "@/lib/api/use-api-resource";
+import { useLocalStorage } from "@/lib/use-local-storage";
+import {
+  ANALYTICS_WINDOW_OPTIONS,
+  ANALYTICS_WINDOW_STORAGE_KEY,
+  buildOperatorDashboardPath,
+  isAnalyticsWindowDays,
+  resolveAnalyticsWindowDays,
+} from "./app.analytics-model";
 
 export const Route = createFileRoute("/app/analytics")({
   component: ProductAnalytics,
 });
 
-type OperatorDashboard = {
+export type OperatorDashboard = {
   metrics: Array<{ label: string; value: string; delta: string }>;
   noiseReduction: Array<{ label: string; value: number; spark: number[] }>;
   usageSummary?: {
@@ -106,9 +115,14 @@ type OperatorDashboard = {
   cycleTime?: CycleTimeAggregate;
 };
 
-function ProductAnalytics() {
+export function ProductAnalytics() {
+  const [storedWindowDays, setStoredWindowDays] = useLocalStorage<number>(
+    ANALYTICS_WINDOW_STORAGE_KEY,
+    90,
+  );
+  const windowDays = resolveAnalyticsWindowDays(storedWindowDays);
   const dashboard = useApiResource<OperatorDashboard>(
-    "/v1/app/operator-dashboard",
+    buildOperatorDashboardPath(windowDays),
     "Product analytics",
   );
   const data = dashboard.status === "ready" ? dashboard.data : null;
@@ -145,6 +159,27 @@ function ProductAnalytics() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={String(windowDays)}
+                onValueChange={(value) => {
+                  const parsed = Number(value);
+                  if (isAnalyticsWindowDays(parsed)) setStoredWindowDays(parsed);
+                }}
+                aria-label="Analytics time window"
+              >
+                {ANALYTICS_WINDOW_OPTIONS.map((days) => (
+                  <ToggleGroupItem
+                    key={days}
+                    value={String(days)}
+                    aria-label={`${days} day window`}
+                  >
+                    {days}d
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
               <StatusPill
                 status={
                   data.usageRollupStatus?.status === "ready" ||

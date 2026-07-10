@@ -70,7 +70,13 @@ export type OperatorDashboardPayload = {
 
 const USAGE_WINDOW_DAYS = 7;
 
-export async function buildOperatorDashboardPayload(env: Env): Promise<OperatorDashboardPayload> {
+/**
+ * The recommendation-quality/fleet/gate-eval/cycle-time cards share one caller-selectable window (#2199, the
+ * analytics dashboard's 7/30/90-day toggle) -- distinct from USAGE_WINDOW_DAYS above, which is a fixed 7-day
+ * "active now" product-usage signal, not a user-selectable analytics range.
+ */
+export async function buildOperatorDashboardPayload(env: Env, options: { days?: number } = {}): Promise<OperatorDashboardPayload> {
+  const analyticsWindowDays = options.days ?? 90;
   const usageSince = new Date(Date.now() - USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const [
     repositories,
@@ -106,12 +112,12 @@ export async function buildOperatorDashboardPayload(env: Env): Promise<OperatorD
     getProductUsageRollupStatus(env),
     summarizeMcpCompatibilityAdoption(env, usageSince),
     getCommandUsefulnessSummary(env),
-    buildRecommendationQualityReport(env, { windowDays: 90 }),
-    computeFleetAnalytics(env, { windowDays: 90 }),
+    buildRecommendationQualityReport(env, { windowDays: analyticsWindowDays }),
+    computeFleetAnalytics(env, { windowDays: analyticsWindowDays }),
     // #2191: reuse the existing eval (no new compute); it fails safe to an empty report on any read error.
-    computeGateEval(env, { days: 90, nowMs: Date.now() }),
+    computeGateEval(env, { days: analyticsWindowDays, nowMs: Date.now() }),
     // #2194: cycle-time percentiles from the stats feed; fails safe to an empty aggregate.
-    computeCycleTimeAggregate(env, { days: 90, nowMs: Date.now() }),
+    computeCycleTimeAggregate(env, { days: analyticsWindowDays, nowMs: Date.now() }),
   ]);
   const weeklyValueReport = buildWeeklyValueReport({
     generatedAt: nowIso(),
