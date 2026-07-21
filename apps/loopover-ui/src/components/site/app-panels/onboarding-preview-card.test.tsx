@@ -145,4 +145,23 @@ describe("OnboardingPreviewCard", () => {
     expect(screen.queryByText(/Here's what LoopOver would have flagged/)).toBeNull();
     expect(apiFetch).not.toHaveBeenCalled();
   });
+
+  // #7782: a blanket gittensory→loopover rename once made LEGACY_DISMISS_KEY identical to DISMISS_KEY,
+  // so a pre-rebrand dismiss under the old key was never migrated and the card reappeared.
+  it("migrates a pre-rebrand dismiss under the gittensory_ legacy key and keeps the card hidden", async () => {
+    window.localStorage.setItem(
+      "gittensory_maintainer_onboarding_preview_dismissed",
+      JSON.stringify({ dismissed: true }),
+    );
+    apiFetch.mockResolvedValue({ ok: true, data: preview() });
+    render(<OnboardingPreviewCard reviewability={REVIEWABILITY} />);
+
+    await waitFor(() =>
+      expect(window.localStorage.getItem("loopover_maintainer_onboarding_preview_dismissed")).toBe(
+        JSON.stringify({ dismissed: true }),
+      ),
+    );
+    expect(screen.queryByText(/Here's what LoopOver would have flagged/)).toBeNull();
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
 });

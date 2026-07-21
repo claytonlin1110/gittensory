@@ -30,10 +30,12 @@ export function NotificationReadinessCard() {
     "/v1/app/notification-model",
     "Notification model",
   );
+  // Legacy key must stay the pre-rebrand `gittensory_...` literal (#7782): a blanket rename once made
+  // it identical to the current key, which silently killed useLocalStorage's fallback branch.
   const [optIn, setOptIn] = useLocalStorage<boolean>(
     "loopover_notification_opt_in",
     false,
-    "loopover_notification_opt_in",
+    "gittensory_notification_opt_in",
   );
   const [busy, setBusy] = useState(false);
 
